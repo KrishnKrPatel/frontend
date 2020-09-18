@@ -1,0 +1,63 @@
+ <script>
+        var csrftoken = Cookies.get('csrftoken');
+
+        function csrfSafeMethod(method) {
+            // these HTTP methods do not require CSRF protection
+            return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+        }
+
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                }
+            }
+        });
+        $(document).ready(function () {
+            $('a.like').click(function (e) {
+                e.preventDefault();
+                $.post('/tradefront/like/', {
+                        id: $(this).data('id'),
+                        action: $(this).data('action')
+                    },
+                    function (data) {
+                        if (data['status'] == 'ok') {
+                            var previous_action = $('a.like').data('action');
+
+                            // toggle data-action
+                            $('a.like').data('action', previous_action == 'like' ? 'unlike' :
+                                'like');
+                            // toggle link text
+                            $('a.like').text(previous_action == 'like' ? 'Unlike' : 'Like');
+
+                            // update total likes
+                            var previous_likes = parseInt($('span.count .total').text());
+                            console.log(previous_likes)
+                            $('span.count .total').text(previous_action == 'like' ? previous_likes +
+                                1 : previous_likes - 1);
+                        }
+                    }
+                );
+            });
+        });
+    </script>
+    
+    
+    def trade_like(request):
+    post_id = request.POST.get('id')
+    action = request.POST.get('action')
+    print("------------888888------------1", request)
+    print("------------888888------------2", action)
+    if post_id and action:
+        try:
+            print("------------888888------------3")
+            post = Swingtrader.objects.get(id=post_id)
+            print("------------888888------------4")
+            if action == 'like':
+                post.users_like.add(request.user)
+            else:
+                post.users_like.remove(request.user)
+            return JsonResponse({'status': 'ok'})
+        except:
+            pass
+    return JsonResponse({'status': 'ko'})
